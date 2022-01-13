@@ -4,7 +4,8 @@ node (node_label) {
     try {
         stage('checkout'){
             dir ('./') {
-                git url: 'https://github.com/jinengandhi-intel/graphene_local_ci.git'
+                git url: 'https://github.com/jinengandhi-intel/graphene_local_ci.git',
+                branch: 'aniket/revert_old_LTP'
             }
 
             dir ("gramine") {
@@ -15,7 +16,6 @@ node (node_label) {
         dir ("gramine") {
             sh 'cp -rf $WORKSPACE/ltp_src LibOS/shim/test/ltp/'
             sh 'cp -rf $WORKSPACE/ltp_config/* LibOS/shim/test/ltp/'
-            sh 'cp -rf $WORKSPACE/ltp_scripts/* Scripts/'
             sh 'cp -rf $WORKSPACE/stress-ng CI-Examples/'
             sh 'cp -rf $WORKSPACE/go_helloworld CI-Examples/'
             sh 'cp -rf ~/jenkins/sandstone-50-bin CI-Examples/'
