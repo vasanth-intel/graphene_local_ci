@@ -7,12 +7,14 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y \
     bison \
     build-essential \
     clang \
+    cmake \
     curl \
     flex \
     gawk \
     gdb \
     gettext \
     git \
+    gnupg \
     golang \
     jq \
     libaio1 \
@@ -47,6 +49,7 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y \
     net-tools \
     netcat-openbsd \
     ninja-build \
+    numactl \
     pkg-config \
     protobuf-c-compiler \
     pylint3 \
@@ -68,6 +71,7 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y \
     python3-scipy \
     python3-sphinx-rtd-theme \
     python3-toml \
+    python3-venv \
     sqlite3 \
     shellcheck \
     sphinx-doc \
@@ -110,6 +114,8 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
 
 # Make a directory for the Gramine installation
 RUN mkdir -p /home/intel/gramine_install && chown 1000 /home/intel/gramine_install
+RUN mkdir -p /opt/intel/openvino_2021 && chown 1000 /opt/intel/openvino_2021
+RUN mkdir -p /opt/intel/openvino_2021.4.752 && chown 1000 /opt/intel/openvino_2021.4.752
 
 # Set the working directory to intel home directory
 WORKDIR /intel

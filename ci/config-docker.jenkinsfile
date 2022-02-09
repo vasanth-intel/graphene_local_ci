@@ -13,6 +13,8 @@ env.DOCKER_ARGS_SGX = '''
     --volume=/lib/modules:/lib/modules:ro
     --volume=/usr/src:/usr/src:ro
     --volume=/usr/bin/stress-ng:/usr/bin/stress-ng
+    --volume=/opt/intel/openvino_2021:/opt/intel/openvino_2021
+    --volume=/opt/intel/openvino_2021.4.752:/opt/intel/openvino_2021.4.752
 '''
 
 env.gcc_dump_machine = sh(script:'gcc -dumpmachine', returnStdout: true).trim()

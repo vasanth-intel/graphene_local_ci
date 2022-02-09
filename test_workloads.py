@@ -9,6 +9,7 @@ import pytest
 gcc_dumpmachine = os.environ.get('gcc_dump_machine')
 sgx_mode = os.environ.get('SGX')
 no_cores = os.environ.get('no_cpu')
+machine = os.environ.get('node_label')
 
 class Test_Workload_Results():
     def test_bash_workload(self):
@@ -67,7 +68,14 @@ class Test_Workload_Results():
     def test_go_helloworld_workload(self):
         go_helloworld_result_file = open("CI-Examples/go_helloworld/OUTPUT", "r")
         go_helloworld_contents = go_helloworld_result_file.read()
-        assert("Hello, world" in go_helloworld_contents)                
+        assert("Hello, world" in go_helloworld_contents)
+
+    @pytest.mark.skipif(machine != 'graphene_20.04_5.13',
+                    reason="Openvino currently tested only on Ubuntu 20.04, 5.13")
+    def test_openvino_workload(self):
+        openvino_result_file = open("CI-Examples/openvino/OUTPUT.txt", "r")
+        openvino_contents = openvino_result_file.read()
+        assert("[Step 11/11] Dumping statistics report" in openvino_contents)                     
     
     @pytest.mark.skipif((int(no_cores) < 16 or sgx_mode != '1'),
                     reason="Sandstone is enabled on servers with SGX")

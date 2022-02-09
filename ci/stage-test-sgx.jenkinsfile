@@ -251,7 +251,24 @@ stage('test-sgx') {
             env.build_ok = false
             sh 'echo "go_helloworld Example Test Failed"'
         }
-    }    
+    }
+
+    if(env.node_label == "graphene_20.04_5.13") 
+    { 
+        try{
+            timeout(time: 45, unit: 'MINUTES') {
+                sh '''
+                    cd CI-Examples/openvino
+                    . ./openvino_env_var.sh
+                    make SGX=1
+                    gramine-sgx benchmark_app -m model/intel/bert-large-uncased-whole-word-masking-squad-0001/FP32/bert-large-uncased-whole-word-masking-squad-0001.xml 2>&1 | tee OUTPUT.txt
+                '''
+            }
+        } catch (Exception e){
+            env.build_ok = false
+            sh 'echo "Openvino Example Test Failed"'
+        }
+    }        
 
     if(env.gcc_dump_machine != "x86_64-redhat-linux")
     {
