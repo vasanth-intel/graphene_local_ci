@@ -1,0 +1,47 @@
+stage('test-openvino') {
+    env.no_cpu = sh(script:'nproc', returnStdout: true).trim()
+    env.openvino_dir = sh(script:'echo $PWD/CI-Examples/openvino', returnStdout: true).trim()
+    try {
+        timeout(time: 120, unit: 'MINUTES') {
+            sh '''
+                cd CI-Examples/openvino
+                . ./openvino_env_var.sh
+                export mode=throughput
+                cp -f openvino_throughput_manifest.template benchmark_app.manifest.template        
+                make SGX=1
+                for config in ${config_list}
+                    do
+                        echo ${config}
+                        chmod +x start_benchmark.sh                                                  
+                        ./start_benchmark.sh ${config} ${mode} 2>&1 | tee benchmark_tput_results.txt
+                    done
+                export mode=latency
+                cp -f openvino_latency_manifest.template benchmark_app.manifest.template
+                make SGX=1
+                for config in ${config_list}
+                    do
+                        echo ${config}
+                        chmod +x start_benchmark.sh                                                  
+                        ./start_benchmark.sh ${config} ${mode} 2>&1 | tee benchmark_lat_results.txt
+                    done                
+            '''
+        }
+    } catch (Exception e){
+        env.build_ok = false
+        sh 'echo "OpenVINO Test Failed"'
+    } finally {
+        archiveArtifacts 'CI-Examples/openvino/*.txt'
+    }
+
+    try {
+        timeout(time: 2, unit: 'MINUTES') {
+            sh 'python3 -m pytest -v --junit-xml openvino_workload.xml  tf_openvino_parser.py'
+            archiveArtifacts 'openvino_workload.xml'
+        }
+    } catch (Exception e){
+        env.build_ok = true
+        sh 'echo "OpenVINO parser failed"'
+    } finally {
+        junit 'openvino_workload.xml'
+    }
+}

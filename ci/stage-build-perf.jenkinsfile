@@ -37,7 +37,7 @@ stage('build') {
         env.PKG_CONFIG_PATH = libdir + '/pkgconfig'
 
         // prevent cheating and testing from repo
-        sh 'rm -rf build'
-        sh 'git clean -Xf subprojects'
+        //sh 'rm -rf build'
+        //sh 'git clean -Xf subprojects'
     }
 }

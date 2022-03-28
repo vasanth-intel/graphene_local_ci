@@ -5,11 +5,10 @@ node(node_label) {
         stage('checkout'){
             dir ('./') {
                 git url: 'https://github.com/jinengandhi-intel/graphene_local_ci.git',
-                branch: 'perf_redis'
+                branch: 'aniket/open_bm'
             }
             dir ('examples') {
-                git url: 'https://github.com/Satya1493/examples.git',
-                branch: 'tensorflow'
+                git url: 'https://github.com/gramineproject/examples.git'
             }  
             dir ("gramine") {
                 git url: 'https://github.com/gramineproject/gramine.git'
@@ -17,20 +16,20 @@ node(node_label) {
         }
 
         dir ("gramine") {
-            sh 'cp -rf $WORKSPACE/examples/tensorflow/ResNet50 CI-Examples/'
+            sh 'cp -rf $WORKSPACE/examples/openvino CI-Examples/'
             sh 'cp -f $WORKSPACE/tf_openvino_parser.py . '
-            sh 'cp -rf $WORKSPACE/perf_benchmarking/resnet/* CI-Examples/ResNet50/'
+            sh 'cp -rf $WORKSPACE/perf_benchmarking/openvino/* CI-Examples/openvino/'
             env.WORKSPACE = env.WORKSPACE + "/gramine"
             load '../ci/config-docker.jenkinsfile'
             load '.ci/lib/config.jenkinsfile'
             load '.ci/lib/config-ubuntu20.04.jenkinsfile'
             load '.ci/lib/config-release.jenkinsfile'
             load '../ci/stage-build-perf.jenkinsfile'
-            load '../ci/stage-tf-resnet-perf.jenkinsfile'            
+            load '../ci/stage-openvino-perf.jenkinsfile'            
         }
     } finally {
         stage('cleanup'){
-            sh 'rm -rf $ORIG_WKSP/*'
+            //sh 'rm -rf $ORIG_WKSP/*'
         }
     }
 
