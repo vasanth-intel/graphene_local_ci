@@ -4,13 +4,18 @@ node (node_label) {
     try {
         stage('checkout'){
             dir ('./') {
-                git url: 'https://github.com/jinengandhi-intel/graphene_local_ci.git'
+                git url: 'https://github.com/jinengandhi-intel/graphene_local_ci.git',
+                branch: 'aniket/py'
             }
 
             dir ("gramine") {
                 git url: 'https://github.com/gramineproject/gramine.git'
+                
             }
-
+            // sh '''
+            //     cd $WORKSPACE/gramine
+            //     git checkout e37f773d4d910799a854b90334f2ff8eb6f411bd
+            // '''
             dir ('examples') {
                 git url: 'https://github.com/anjalirai-intel/examples',
                 branch: 'examples_update'
@@ -27,6 +32,7 @@ node (node_label) {
             sh 'cp -rf $WORKSPACE/examples/* CI-Examples/'
             sh 'cp -rf ~/jenkins/sandstone-50-bin CI-Examples/'
             sh 'cp -f $WORKSPACE/test_workloads.py . '
+            //sh 'cp -f $WORKSPACE/ci/python.manifest.template CI-Examples/python'
             sh 'cp -f $WORKSPACE/Patch/rename_protected_files.patch .'
             env.WORKSPACE = env.WORKSPACE + "/gramine"
             env.SGX = '1'
@@ -47,11 +53,11 @@ node (node_label) {
                 load '.ci/lib/config-release.jenkinsfile'
 
                 load '../ci/stage-build-sgx.jenkinsfile'
-                load '../ci/stage-test.jenkinsfile'
+                //load '../ci/stage-test.jenkinsfile'
                 load '../ci/stage-test-sgx.jenkinsfile'
-                load '../ci/stage-test-examples.jenkinsfile'
-                load '../ci/stage-verification-examples.jenkinsfile'
-                load '../ci/stage-test-stress-ng.jenkinsfile'
+                //load '../ci/stage-test-examples.jenkinsfile'
+                //load '../ci/stage-verification-examples.jenkinsfile'
+                //load '../ci/stage-test-stress-ng.jenkinsfile'
             }
         }
     } finally {

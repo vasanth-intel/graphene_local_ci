@@ -1,268 +1,33 @@
 stage('test-sgx') {
     env.no_cpu = sh(script:'nproc', returnStdout: true).trim()
-    
-    try {
-        timeout(time: 60, unit: 'MINUTES') {
-            sh '''
-                cd LibOS/shim/test/ltp
-                cp -f toml_files/tests_sgx.toml tests.toml
-                os_release_id=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
-                os_version=$(grep -oP 'VERSION_ID="\\K[\\d.]+' /etc/os-release)
-                if [ "${os_release_id}" = "rhel" ] || [ "${os_release_id}" = "centos" ]
-                then
-                    cp -f manifest_CentOS_RHEL.template manifest.template
-                fi
-                if [ "${os_version}" = "18.04" ]
-                then
-                    cp -f manifest_18_04.template manifest.template
-                fi
-                if [ "${os_version}" = "20.04" ] || [ "${os_version}" = "21.10" ]
-                then
-                    cp -f manifest_20_04_21_10.template manifest.template
-                fi
-                make ${MAKEOPTS} -f Makefile.LTP SGX=1 all 
-            '''
-            // Run tests in a separate block, so that Jenkins measures build time and run time
-            // separately
-            sh '''
-                cd LibOS/shim/test/ltp
-                python3 -m pytest -v  --junit-xml=ltp-sgx.xml
-            '''                
-            /*
-            sh '''
-                cd LibOS/shim/test/ltp
-                export CFG=ltp-sudo-syscalls.cfg
-                export LTPSCENARIO=$PWD/install-sgx/runtest/syscalls-sudo
-                make -f Makefile.LTP ltp-sgx_results_2.xml LTPCFG=$CFG LTPTESTFILE=$LTPSCENARIO
-            '''
-            */
-        }
-    } catch (Exception e){
-        env.build_ok = false
-        sh 'echo "LTP Test Failed"'
-    } finally {
-        archiveArtifacts 'LibOS/shim/test/ltp/ltp-sgx.xml'
-        junit 'LibOS/shim/test/ltp/ltp-sgx.xml'
-    }
 
-    try{
-        timeout(time: 10, unit: 'MINUTES') {
-            sh '''
-                cd CI-Examples/bash
-                sed -i '/@rm OUTPUT/d' Makefile
-                if [ "${gcc_dump_machine}" == 'x86_64-redhat-linux' ]
-                then
-                    sed -i '$ a loader.pal_internal_mem_size = "128M"' manifest.template 
-                fi                    
-                make ${MAKEOPTS} ${ARCH_LIB_OPT} all
-                make ${MAKEOPTS} SGX=1 regression
-            '''
-        }
-    } catch (Exception e){
-        env.build_ok = false
-        sh 'echo "Bash Example Test Failed"'
-    }
- 
     if(env.gcc_dump_machine != "x86_64-redhat-linux") 
-    {  
-        try {
-            timeout(time: 15, unit: 'MINUTES') {
-                sh '''
-                    cd CI-Examples/memcached
-                    make ${MAKEOPTS} ${ARCH_LIB_OPT} all
-                    make SGX=1 start-gramine-server &
-                    ../../Scripts/wait_for_server 60 127.0.0.1 11211
-                    # memcslap populates server but doesn't report errors, use
-                    # memcached-tool for this (must return two lines of stats)
-                    memcslap --servers=127.0.0.1 --concurrency=8
-                    src/scripts/memcached-tool 127.0.0.1 | wc -l | grep -w "2" 2>&1 | tee OUTPUT.txt
-                '''
-            }
-        } catch (Exception e){
-            env.build_ok = false
-            sh 'echo "Memcached Example Test Failed"'
-        }
-
+    {          
         try{
             timeout(time: 5, unit: 'MINUTES') {
                 sh '''
                     cd CI-Examples/python
-                    make ${MAKEOPTS} ${ARCH_LIB_OPT} all
-                    make ${MAKEOPTS} SGX=1 check
+                    cat python.manifest.template                    
+                    make SGX=1 
+                    cat python.manifest.sgx
+                    gramine-sgx ./python scripts/helloworld.py
+                    gramine-sgx ./python scripts/test-numpy.py
+                    gramine-sgx ./python scripts/test-scipy.py
+                    gramine-sgx ./python scripts/dummy-web-server.py 8005 & echo $! > server.PID
+                    ../../Scripts/wait_for_server 60 127.0.0.1 8005
+                    gramine-sgx ./python scripts/test-http.py 127.0.0.1 8005 > OUTPUT1
+                    wget  http://127.0.0.1:8005/ -O OUTPUT2
+                    echo >> OUTPUT2
+                    diff OUTPUT1 OUTPUT2 | grep -q '^>' || echo "[ Success 2/4 ]"
+                    kill "$(cat server.PID)"
+                    cat OUTPUT1
+                    cat OUTPUT2
+
                 '''
             }
         } catch (Exception e){
             env.build_ok = false
             sh 'echo "Python Example Test Failed"'
         }
-    }
-
-    try {
-        timeout(time: 15, unit: 'MINUTES') {
-            sh '''
-                # TODO this logic is to check both epoll and select varants, and probably
-                # should be split to check both of those separately and on all distros
-                if .ci/isdistro xenial
-                then
-                    USE_SELECT=1
-                    export USE_SELECT
-                fi
-
-                cd CI-Examples/redis
-                if [ "${gcc_dump_machine}" == 'x86_64-redhat-linux' ]
-                then
-                    sed -i '$ a loader.pal_internal_mem_size = "64M"' redis-server.manifest.template 
-                fi                
-                make ${MAKEOPTS} ${ARCH_LIB_OPT}
-                make ${MAKEOPTS} SGX=1 start-gramine-server &
-                ../../Scripts/wait_for_server 60 127.0.0.1 6379
-                ./src/src/redis-benchmark 2>&1 | tee OUTPUT
-            '''
-        }
-    } catch (Exception e){
-        env.build_ok = false
-        sh 'echo "Redis Example Test Failed"'
-    }
-
-    try {
-        timeout(time: 15, unit: 'MINUTES') {
-            sh '''
-                cd CI-Examples/lighttpd
-                if [ "${gcc_dump_machine}" == 'x86_64-redhat-linux' ]
-                then
-                    sed -i '$ a loader.pal_internal_mem_size = "64M"' lighttpd.manifest.template 
-                fi                
-                make ${MAKEOPTS} ${ARCH_LIB_OPT} all
-                make ${MAKEOPTS} SGX=1 start-gramine-server &
-                ../../Scripts/wait_for_server 60 127.0.0.1 8003
-                LOOP=1 CONCURRENCY_LIST="1 32" ../common_tools/benchmark-http.sh 127.0.0.1:8003
-            '''
-        }
-    } catch (Exception e){
-        env.build_ok = false
-        sh 'echo "Lighttpd Example Test Failed"'
-    }
-
-    try {
-        timeout(time: 15, unit: 'MINUTES') {
-            sh '''
-                cd CI-Examples/nginx
-                if [ "${gcc_dump_machine}" == 'x86_64-redhat-linux' ]
-                then
-                    sed -i '$ a loader.pal_internal_mem_size = "64M"' nginx.manifest.template 
-                fi                
-                make ${MAKEOPTS} ${ARCH_LIB_OPT} all
-                make ${MAKEOPTS} SGX=1 start-gramine-server &
-                ../../Scripts/wait_for_server 60 127.0.0.1 8002
-                LOOP=1 CONCURRENCY_LIST="1 32" ../common_tools/benchmark-http.sh 127.0.0.1:8002
-            '''
-        }
-    } catch (Exception e){
-        env.build_ok = false
-        sh 'echo "NGINX Example Test Failed"'
-    }
-
-    try {    
-        timeout(time: 5, unit: 'MINUTES') {
-            sh '''
-            cd CI-Examples/blender
-            if [ "${no_cpu}" -gt 16 ]
-            then
-                sed -i 's/sgx.enclave_size = "2048M"/sgx.enclave_size = "4G"/g' blender.manifest.template
-                sed -i 's/sgx.thread_num = 64/sgx.thread_num = 256/g' blender.manifest.template
-            fi
-            if [ "${gcc_dump_machine}" == 'x86_64-redhat-linux' ]
-            then
-                sed -i '$ a loader.pal_internal_mem_size = "64M"' blender.manifest.template 
-            fi
-            make ${MAKEOPTS} ${ARCH_LIB_OPT} all
-            make ${MAKEOPTS} SGX=1 check	
-            '''
-        }
-    } catch (Exception e){
-        env.build_ok = false
-        sh 'echo "Blender Example Test Failed"'
-    }
-
-    try{
-        timeout(time: 5, unit: 'MINUTES') {
-            sh '''
-                cd CI-Examples/sqlite
-                make ${MAKEOPTS} ${ARCH_LIB_OPT} all
-                make ${MAKEOPTS} SGX=1 regression
-            '''
-        }
-    } catch (Exception e){
-        env.build_ok = false
-        sh 'echo "SQLite Example Test Failed"'
-    }
-
-    /*timeout(time: 5, unit: 'MINUTES') {
-        sh '''
-            # test SGX remote attestation only on Ubuntu 18.04 to keep internet requests to minimum
-            .ci/isdistro bionic || exit 0
-
-            cd CI-Examples/ra-tls-mbedtls
-            if [ "${ra_client_spid}" != "" ] && [ "${ra_client_key}" != "" ]; \
-            then \
-                make check_epid RA_CLIENT_SPID=${ra_client_spid} \
-                                        RA_TLS_EPID_API_KEY=${ra_client_key} \
-                                        RA_CLIENT_LINKABLE=0; \
-                make check_epid_fail RA_CLIENT_SPID=${ra_client_spid} \
-                                            RA_TLS_EPID_API_KEY=${ra_client_key} \
-                                            RA_CLIENT_LINKABLE=0; \
-            else \
-                echo "Failure: no ra_client_spid and/or ra_client_key!"; \
-                exit 1; \
-            fi
-        '''
-    }
-    timeout(time: 5, unit: 'MINUTES') {
-        sh '''
-            # test SGX remote attestation only on Ubuntu 18.04 to keep internet requests to minimum
-            .ci/isdistro bionic || exit 0
-
-            cd CI-Examples/ra-tls-secret-prov
-            if [ "${ra_client_spid}" != "" ] && [ "${ra_client_key}" != "" ]; \
-            then \
-                make SGX=1 check_epid RA_CLIENT_SPID=${ra_client_spid} \
-                                        RA_TLS_EPID_API_KEY=${ra_client_key} \
-                                        RA_CLIENT_LINKABLE=0; \
-            else \
-                echo "Failure: no ra_client_spid and/or ra_client_key!"; \
-                exit 1; \
-            fi
-        '''
-    }*/
-
-    if(env.no_cpu.toInteger() > 16) 
-    { 
-        try{
-            timeout(time: 5, unit: 'MINUTES') {
-                sh '''
-                    cd CI-Examples/go_helloworld
-                    make SGX=1 check
-                '''
-            }
-        } catch (Exception e){
-            env.build_ok = false
-            sh 'echo "go_helloworld Example Test Failed"'
-        }
-    }    
-
-    try{
-        timeout(time: 120, unit: 'MINUTES') {
-            sh '''
-                if [ "${no_cpu}" -gt 16 ]
-                then
-                    cd CI-Examples/sandstone-50-bin
-                    make SGX=1 
-                    SGX=1 make start-sandstone 2>&1 | tee OUTPUT.txt
-                fi
-            '''
-        }
-    } catch (Exception e) {
-        env.build_ok = false
-        sh 'echo "Sandstone workload Failed"'
     }
 }

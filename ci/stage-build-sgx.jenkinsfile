@@ -2,10 +2,7 @@ stage('build') {
     if (env.CC == 'clang') {
         env.MESON_OPTIONS += ' -Dmusl=disabled'
     }
-    sh '''
-        cd "$WORKSPACE"        
-        git apply rename_protected_files.patch
-    '''
+
     script {
         if (env.build_type == "manual") {
 
@@ -73,7 +70,7 @@ stage('build') {
             } else {
                 try {
                     sh '''
-                    cd "$WORKSPACE"
+                    cd "$WORKSPACE"                    
                     sed -i "/uname/ a '/usr/src/linux-headers-@0@/arch/x86/include/uapi'.format(run_command('uname', '-r').stdout().split('-generic')[0].strip())," meson.build
                     meson setup build \
                         --werror \
@@ -85,7 +82,7 @@ stage('build') {
                         $MESON_OPTIONS > meson_cmd_output.txt
                     ninja -vC build > ninja_build_log.txt
                     ninja -vC build install > ninja_install_log.txt
-                    gramine-sgx-gen-private-key
+                    gramine-sgx-gen-private-key -f
                 '''
                 } finally {
                     archiveArtifacts 'build/meson-logs/**/*'

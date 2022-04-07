@@ -23,10 +23,8 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libevent-dev \
     libexpat1 \
     libexpat1-dev \
-    libjpeg-dev \
     libmemcached-tools \
     libnss-mdns \
-    libnss-myhostname \
     libnuma1 \
     libomp-dev \
     libpcre2-dev \
@@ -43,14 +41,11 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libpixman-1-dev \
     libipsec-mb-dev \
     linux-headers-4.15.0-20-generic \
-    lsb-release \
     musl \
     musl-tools \
     net-tools \
     netcat-openbsd \
     ninja-build \
-    nodejs \
-    openjdk-11-jdk \
     pkg-config \
     protobuf-c-compiler \
     pylint3 \
@@ -62,14 +57,13 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive apt-get install -y \
     python3-cryptography \
     python3-jinja2 \
     python3-lxml \
-    python3-numpy \
     python3-pip \
+    python3-numpy \
     python3-protobuf \
     python3-pyelftools \
     python3-pytest \
     python3-pytest-xdist \
     python3-scipy \
-    r-base \
     sqlite3 \
     shellcheck \
     sudo \
@@ -89,9 +83,8 @@ RUN python3 -m pip install -U \
     'Sphinx==1.8' \
     sphinx_rtd_theme \
     'toml>=0.10' \
-    'meson>=0.55,<0.56' \ 
-    torchvision \
-    pillow
+    'meson>=0.55,<0.56' 
+
 
 # # Add the user UID:1000, GID:1000, home at /intel
 # RUN groupadd -r intel -g 1000 && useradd -u 1000 -r -g intel -m -d /intel -c "intel Jenkins" intel && \
@@ -103,7 +96,7 @@ RUN python3 -m pip install -U \
 RUN adduser --disabled-password --gecos '' intel
 RUN adduser intel sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-RUN echo 'Acquire::http::proxy "http://proxy-dmz.intel.com:911/"; Acquire::https::proxy "http://proxy-dmz.intel.com:912/"; Acquire::ftp::proxy "ftp://proxy-dmz.intel.com:911/";' >> /etc/apt/apt.conf.d/proxy.conf
+RUN echo 'Acquire::http::proxy "http://proxy.iind.intel.com:911/"; Acquire::https::proxy "http://proxy.iind.intel.com:912/"; Acquire::ftp::proxy "ftp://proxy.iind.intel.com:911/";' >> /etc/apt/apt.conf.d/proxy.conf
 
 # Blow away any random state
 RUN rm -f /intel/.rnd
