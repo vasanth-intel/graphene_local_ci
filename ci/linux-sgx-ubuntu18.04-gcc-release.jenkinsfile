@@ -4,11 +4,13 @@ node (node_label) {
     try {
         stage('checkout'){
             dir ('./') {
-                git url: 'https://github.com/jinengandhi-intel/graphene_local_ci.git'
+                git url: 'https://github.com/jinengandhi-intel/graphene_local_ci.git',
+                branch: 'edmm_validation'
             }
 
             dir ("gramine") {
-                git url: 'https://github.com/gramineproject/gramine.git'
+                git url: 'https://github.com/vijaydhanraj/gramine.git',
+                branch: 'vdhanraj/edmm_in_kernel_driver'
             }
 
             dir ('examples') {
@@ -25,10 +27,11 @@ node (node_label) {
             sh 'cp -rf $WORKSPACE/go_helloworld CI-Examples/'
             sh 'cp -rf $WORKSPACE/rust_helloworld CI-Examples/'
             sh 'cp -rf $WORKSPACE/examples/* CI-Examples/'
-            sh 'cp -rf ~/jenkins/sandstone-50-bin CI-Examples/'
             sh 'cp -f $WORKSPACE/test_workloads.py . '
             sh 'cp -rf $WORKSPACE/Python/* CI-Examples/python/'
             sh 'cp -f $WORKSPACE/Patch/rename_protected_files.patch .'
+            sh 'bash $WORKSPACE/ci/enable_edmm.sh $WORKSPACE/gramine'
+
             env.WORKSPACE = env.WORKSPACE + "/gramine"
             env.SGX = '1'
 
@@ -39,21 +42,16 @@ node (node_label) {
     
             load '../ci/config-docker.jenkinsfile'
 
-            docker.build(
-                "local:${env.BUILD_TAG}",
-                '-f ../ci/ubuntu18.04.dockerfile .'
-            ).inside("${env.DOCKER_ARGS_COMMON} ${env.DOCKER_ARGS_SGX}") {
-                load '.ci/lib/config.jenkinsfile'
-                load '.ci/lib/config-ubuntu18.04.jenkinsfile'
-                load '.ci/lib/config-release.jenkinsfile'
+            load '.ci/lib/config.jenkinsfile'
+            load '.ci/lib/config-ubuntu18.04.jenkinsfile'
+            load '.ci/lib/config-release.jenkinsfile'
 
-                load '../ci/stage-build-sgx.jenkinsfile'
-                load '../ci/stage-test.jenkinsfile'
-                load '../ci/stage-test-sgx.jenkinsfile'
-                load '../ci/stage-test-examples.jenkinsfile'
-                load '../ci/stage-verification-examples.jenkinsfile'
-                load '../ci/stage-test-stress-ng.jenkinsfile'
-            }
+            load '../ci/stage-build-sgx.jenkinsfile'
+            load '../ci/stage-test.jenkinsfile'
+            load '../ci/stage-test-sgx.jenkinsfile'
+            load '../ci/stage-test-examples.jenkinsfile'
+            load '../ci/stage-verification-examples.jenkinsfile'
+            //load '../ci/stage-test-stress-ng.jenkinsfile'
         }
     } finally {
         stage('cleanup'){
