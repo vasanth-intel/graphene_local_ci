@@ -1,6 +1,7 @@
 stage('checkout'){
     dir ("gramine") {
-        git url: 'https://github.com/gramineproject/gramine.git'
+        git url: 'https://github.com/vijaydhanraj/gramine.git',
+        branch: 'edmm_in_kernel_v4_master'
     }
 
     dir ('examples') {

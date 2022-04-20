@@ -87,6 +87,7 @@ stage('build') {
                         -Ddirect=disabled \
                         -Dtests=enabled \
                         -Dsgx=enabled \
+                        -Dsgx_driver_include_path="/home/intel/edmm/linux_v4/arch/x86/include/uapi"
                         $MESON_OPTIONS > meson_cmd_output.txt
                     ninja -vC build > ninja_build_log.txt
                     ninja -vC build install > ninja_install_log.txt
