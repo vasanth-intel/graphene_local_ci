@@ -1,0 +1,50 @@
+FROM debian:11
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV http_proxy "http://proxy-dmz.intel.com:911"
+ENV https_proxy "http://proxy-dmz.intel.com:912"
+
+RUN apt-get update && apt-get install -y gnupg ca-certificates
+
+# Intel's RSA-1024 key signing intel-sgx/sgx_repo below. Expires 2023-05-24.
+COPY pkey.txt /
+
+RUN cat /pkey.txt | apt-key add -
+
+RUN echo deb https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main > /etc/apt/sources.list.d/intel-sgx.list
+RUN apt-get update
+
+# keep this list synced with Build-Depends: in debian/control
+RUN apt-get install -y build-essential \
+    autoconf \
+    bison \
+    devscripts \
+    gawk \
+    libcurl4-openssl-dev \
+    libprotobuf-c-dev \
+    libsgx-dcap-quote-verify-dev \
+    meson \
+    ninja-build \
+    pkg-config \
+    protobuf-c-compiler \
+    python3-breathe \
+    python3-sphinx \
+    python3-sphinx-rtd-theme
+
+# Add the user UID:1000, GID:1000, home at /intel
+RUN groupadd -r intel -g 1000 && useradd -u 1000 -r -g intel -G sudo -m -d /intel -c "intel Jenkins" intel && \
+    chmod 777 /intel
+
+# Make sure /intel can be written by intel
+RUN chown 1000 /intel 
+
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+RUN echo `pwd`
+
+RUN ls
+
+RUN chown 1000 `pwd`
+
+# Define default command.
+CMD ["bash"]

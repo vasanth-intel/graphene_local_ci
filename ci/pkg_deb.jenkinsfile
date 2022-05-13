@@ -1,0 +1,10 @@
+stage('pkg_deb') {
+    try {
+        sh '''
+            debuild --set-envvar=http_proxy=http://proxy-chain.intel.com:911/ --set-envvar=https_proxy=http://proxy-chain.intel.com:912/
+        '''
+        } catch (Exception e) {}
+    finally {
+        archiveArtifacts '../*.deb'
+    }
+}
