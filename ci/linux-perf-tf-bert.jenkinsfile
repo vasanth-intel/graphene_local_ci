@@ -5,7 +5,7 @@ node(node_label) {
         stage('checkout'){
             dir ('./') {
                 git url: 'https://github.com/jinengandhi-intel/graphene_local_ci.git',
-                branch: 'perf_redis'
+                branch: 'TF_benchmarking'
             }
             dir ('examples') {
                 git url: 'https://github.com/Satya1493/examples.git',
