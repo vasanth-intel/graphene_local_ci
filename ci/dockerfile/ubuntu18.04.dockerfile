@@ -108,9 +108,7 @@ RUN python3 -m pip install -U \
     'Sphinx==1.8' \
     sphinx_rtd_theme \
     'toml>=0.10' \
-    'meson>=0.55,<0.56' \ 
-    torchvision \
-    pillow
+    'meson>=0.55,<0.56'
 
 # Add the user UID:1000, GID:1000, home at /intel
 RUN groupadd -r intel -g 1000 && useradd -u 1000 -r -g intel -G sudo -m -d /intel -c "intel Jenkins" intel && \

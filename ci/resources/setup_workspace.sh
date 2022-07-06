@@ -15,9 +15,6 @@ if [[ "$SGX" == 1 ]]; then
   cp -rf ~/jenkins/sandstone-50-bin CI-Examples/
   cp -f $WORKSPACE/Patch/rename_protected_file.patch .
 
-  if [[ "$base_os" == "ubuntu18.04" ]]; then
-    cp -rf $WORKSPACE/Python/* CI-Examples/python/
-  fi
 fi
 
 sed -i 's/.release  = "3.10.0"/.release  = "5.10.0"/' libos/src/sys/libos_uname.c
