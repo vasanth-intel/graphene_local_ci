@@ -10,6 +10,7 @@ cp -rf $WORKSPACE/go_helloworld CI-Examples/
 cp -rf $WORKSPACE/examples/* CI-Examples/
 cp -rf $WORKSPACE/test_workloads.py . 
 cp -rf $WORKSPACE/utils/openvino_setup.sh CI-Examples/openvino/
+cp -rf $WORKSPACE/ci/nginx/benchmark-http.sh CI-Examples/common_tools
 
 if [[ "$SGX" == 1 ]]; then
   cp -rf ~/jenkins/sandstone-50-bin CI-Examples/
